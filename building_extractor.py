@@ -66,7 +66,7 @@ def snapshot_city_at_timestamp(city_output_pbf_file, timestamp, id):
         print("Completed temporal filter: {}".format(timed_city_output_pbf))
         return timed_city_output_pbf
     else:
-        raise result.check_returncode()
+        result.check_returncode()
 
 def extract_buildings_from_snapshot(timed_city_output_pbf, id):
     buildings_pbf = city_pbfs_output_directory + os.sep + str(id) + "." + year_month + ".buildings" + ".osm.pbf"
@@ -81,7 +81,7 @@ def extract_buildings_from_snapshot(timed_city_output_pbf, id):
         print("Buildings filtered to {}".format(buildings_pbf))
         return buildings_pbf
     else:
-        raise result.check_returncode()
+        result.check_returncode()
 
 def import_buildings_into_db(buildings_pbf, id):
     print("Importing into database...")
@@ -105,7 +105,7 @@ def import_buildings_into_db(buildings_pbf, id):
         print("Completed database import for {}".format(year_month))
         return 0
     else:
-        return None
+        result.check_returncode()
     
         
 

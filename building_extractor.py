@@ -9,7 +9,8 @@ osm_history_file_path = r"data/history-latest.osm.pbf"
 city_polys_output_directory = r"data/outputs/citypolys"
 city_pbfs_output_directory = r"data/outputs/citypbfs"
 # city_relation_osm_ids = [2062154,7486330] # waterloo, stratford
-city_relation_osm_ids = [7433781, 7433486] # leamington, kingsville
+#city_relation_osm_ids = [7433781, 7433486] # leamington, kingsville
+city_relation_osm_ids = [7433781]
 start_date = datetime.datetime(2000,1,1,0,0,0)
 end_date = datetime.datetime.now()
 
@@ -26,7 +27,7 @@ def get_city_poly_file(id):
         file.close()
         return city_output_poly_path
     else:
-        return None
+        raise Exception(r.status_code) 
 
 def extract_city_from_history(id, city_output_poly_path):
     # Extract the features from the full history file that are within the city polygon
@@ -46,7 +47,8 @@ def extract_city_from_history(id, city_output_poly_path):
         print("Completed extracting city {} to {}".format(str(id),city_output_pbf_file))
         return city_output_pbf_file
     else:
-        return None
+        # raises an exception if return code is non-zero
+        result.check_returncode()
 
 def snapshot_city_at_timestamp(city_output_pbf_file, timestamp, id):
     timestamp_s = timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -64,7 +66,7 @@ def snapshot_city_at_timestamp(city_output_pbf_file, timestamp, id):
         print("Completed temporal filter: {}".format(timed_city_output_pbf))
         return timed_city_output_pbf
     else:
-        return None
+        raise result.check_returncode()
 
 def extract_buildings_from_snapshot(timed_city_output_pbf, id):
     buildings_pbf = city_pbfs_output_directory + os.sep + str(id) + "." + year_month + ".buildings" + ".osm.pbf"
@@ -79,7 +81,7 @@ def extract_buildings_from_snapshot(timed_city_output_pbf, id):
         print("Buildings filtered to {}".format(buildings_pbf))
         return buildings_pbf
     else:
-        return None
+        raise result.check_returncode()
 
 def import_buildings_into_db(buildings_pbf, id):
     print("Importing into database...")
@@ -110,26 +112,46 @@ def import_buildings_into_db(buildings_pbf, id):
 # 1) Get the city .poly file based on its ID
 for id in city_relation_osm_ids:
     # Get city polygon file
-    city_output_poly_path = get_city_poly_file(id)
-    if city_output_poly_path is not None:
-        # Subset full history with city polygon
+    try:
+        city_output_poly_path = get_city_poly_file(id)
+    except Exception as ex:
+        print("Exception raised getting city poly file: {}".format(ex))
+        continue
+
+    # Subset full history with city polygon
+    try:
         city_output_pbf_file = extract_city_from_history(id, city_output_poly_path)
+    except Exception as ex:
+        print("Exception raised extracting city from history: {}".format(ex))
+        continue
 
-        if city_output_pbf_file is not None:
-            # Get snapshots of city at 3 month intervals
-            current_date = start_date
-            while current_date < end_date:
-                timed_city_output_pbf = snapshot_city_at_timestamp(city_output_pbf_file, current_date, id)
-                year_month = current_date.strftime("%Y_%m")
-                if timed_city_output_pbf is not None:
-                    # Extract buildings from timed snapshot
-                    buildings_pbf = extract_buildings_from_snapshot(timed_city_output_pbf, id)
+    # Get snapshots of city at 3 month intervals
+    current_date = start_date
+    while current_date < end_date:
+        try:
+            timed_city_output_pbf = snapshot_city_at_timestamp(city_output_pbf_file, current_date, id)
+        except Exception as ex:
+            print("Exception raised snapshotting {} at time {}: {}".format(str(id), str(current_date), ex))
+            continue
 
-                    if buildings_pbf is not None:
-                        import_buildings_into_db(buildings_pbf, id)
-                
-                current_date = current_date + relativedelta(months=3)
-    else:
-        print("Error retrieving city polygon for {}. Skipping.".format(str(id)))
+        year_month = current_date.strftime("%Y_%m")
+
+        # Extract buildings from timed snapshot
+        try:
+            buildings_pbf = extract_buildings_from_snapshot(timed_city_output_pbf, id)
+        except Exception as ex:
+            print("Exception raised extracting buildings from {}: {}".format(str(id), ex))
+            continue
+        
+        # Import buildings into the database
+        try:
+            import_buildings_into_db(buildings_pbf, id)
+        except Exception as ex:
+            print("Exception raised importing buildings into database for {}:{}".format(str(id), ex))
+            continue
+
+        # Increment date by 3 months
+        current_date = current_date + relativedelta(months=3)
+
 
     

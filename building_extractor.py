@@ -8,10 +8,10 @@ from dateutil.relativedelta import relativedelta
 osm_history_file_path = r"data/history-latest.osm.pbf"
 city_polys_output_directory = r"data/outputs/citypolys"
 city_pbfs_output_directory = r"data/outputs/citypbfs"
-# city_relation_osm_ids = [2062154,7486330] # waterloo, stratford
+city_relation_osm_ids = [2062154,7486330] # waterloo, stratford
 #city_relation_osm_ids = [7433781, 7433486] # leamington, kingsville
-city_relation_osm_ids = [7433781]
-start_date = datetime.datetime(2000,1,1,0,0,0)
+#city_relation_osm_ids = [7433781]
+start_date = datetime.datetime(2010,1,1,0,0,0)
 end_date = datetime.datetime.now()
 
 def get_city_poly_file(id):
@@ -75,6 +75,7 @@ def extract_buildings_from_snapshot(timed_city_output_pbf, id):
                             "tags-filter",
                             timed_city_output_pbf,
                             "building",
+                            "--overwrite",
                             "-o",
                             buildings_pbf])
     if result.returncode == 0:
@@ -151,7 +152,7 @@ for id in city_relation_osm_ids:
             continue
 
         # Increment date by 3 months
-        current_date = current_date + relativedelta(months=3)
+        current_date = current_date + relativedelta(months=6)
 
 
     

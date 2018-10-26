@@ -94,7 +94,7 @@ def import_buildings_into_db(buildings_pbf, id):
                             "history_test",
                             buildings_pbf,
                             "-U",
-                            "osmimport",
+                            "postgres",
                             "-H",
                             "env-pgs-dev1",
                             "-S",
@@ -114,14 +114,17 @@ def import_buildings_into_db(buildings_pbf, id):
 for id in city_relation_osm_ids:
     # Get city polygon file
     try:
-        city_output_poly_path = get_city_poly_file(id)
+        #city_output_poly_path = get_city_poly_file(id)
+        city_output_poly_file = str(id) + ".poly"
+        city_output_poly_path = city_polys_output_directory + os.sep + city_output_poly_file
     except Exception as ex:
         print("Exception raised getting city poly file: {}".format(ex))
         continue
 
     # Subset full history with city polygon
     try:
-        city_output_pbf_file = extract_city_from_history(id, city_output_poly_path)
+        #city_output_pbf_file = extract_city_from_history(id, city_output_poly_path)
+        city_output_pbf_file = city_pbfs_output_directory + os.sep + str(id) + ".osm.pbf"
     except Exception as ex:
         print("Exception raised extracting city from history: {}".format(ex))
         continue
